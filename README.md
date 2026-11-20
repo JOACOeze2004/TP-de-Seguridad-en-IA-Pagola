@@ -57,7 +57,7 @@ Tiene que aparecer `(venv)` al principio de la terminal. En Ubuntu, si falla la 
 
 Con el venv activado:
 ```
-pip install streamlit langchain langchain-ollama
+pip install streamlit langchain langchain-ollama python-dotenv
 ```
 
 Si aparece `externally-managed-environment`, el venv no está activado: `pip` es el del sistema.
