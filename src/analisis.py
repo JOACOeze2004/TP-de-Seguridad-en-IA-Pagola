@@ -6,9 +6,10 @@ Uso:
 
   carpeta_con_csv  por defecto, la carpeta actual. Se busca en TODAS las subcarpetas
                    (evidencia/llm01_prompts/laxa/..., evidencia/llm03_tools/..., etc.).
+                   Todo CSV dentro de una carpeta 'descartados/' se descarta; el resto se usa.
                    Los nombres de archivo no pueden repetirse entre subcarpetas.
   --reclasificar   recalcula 'nivel' de cada fila con el detectores.py actual (hace falta
-                   detectores.py y defensas.py en la misma carpeta desde donde se corre). Asi TODAS
+                   detectores.py y defensas.py junto a analisis.py, en src/). Asi TODAS
                    las configs se miden con el mismo detector. Sin este flag se usa el 'nivel'
                    guardado en cada CSV, que pudo salir de versiones distintas del detector.
 
@@ -30,26 +31,29 @@ Fuera de alcance: P5 (LLM06) se excluye siempre.
 import csv, os, sys, math, collections, glob
 
 USAR, DESCARTAR = "usar", "descartar"
-MANIFIESTO = {
-    # --- prompts (pruebas.py) ---
-    "resultados_laxa.csv": (USAR, "30 reps"),
-    "resultados_restrictivaSegundoIntento.csv": (USAR, "config 'debil' (nombre viejo: restrictiva), 30 reps"),
-    "resultados_estricta.csv": (USAR, "30 reps"),
-    "resultados_filtro.csv": (USAR, "30 reps"),
-    "resultados_estricta_filtro.csv": (USAR, "30 reps"),
-    "resultados_segmentada_20261122_095942.csv": (USAR, "30 reps, incluye P5 (se excluye en el analisis)"),
-    "resultados_sin_secretos_20261122_100639.csv": (USAR, "30 reps, incluye P5 (se excluye en el analisis)"),
-    "resultados_restrictivaPrimerIntento.csv": (DESCARTAR, "piloto 5 reps; lo reemplaza el de 30 reps"),
-    "resultados_debil_SegundoIntento.csv": (DESCARTAR, "piloto 5 reps, esquema v1 (exito booleano), sin modelo registrado"),
-    "resultados_debil_PrimerIntento.csv": (DESCARTAR, "piloto 1 rep, esquema v1"),
-    # --- herramientas (pruebas_tools.py) ---
-    "tools_v2_debil_20reps_20261109_181720.csv": (USAR, "v2, 20 reps, T1-T6 (sin nota_leida)"),
-    "tools_v2_endurecida_20reps_20261109_182624.csv": (USAR, "v2, 20 reps, T1-T6 (sin nota_leida)"),
-    "tools_debil_20reps_20261109_174504.csv": (DESCARTAR, "v1: prompt anterior, sin T6; lo reemplaza v2"),
-    "tools_endurecida_20reps_20261109_175252.csv": (DESCARTAR, "v1: prompt anterior, sin T6; lo reemplaza v2"),
-    "tools_debil_humo_3reps_20261109_174250.csv": (DESCARTAR, "prueba de humo, 3 reps"),
-    "tools_v2_debil_humo_T6_2reps_20261109_181655.csv": (DESCARTAR, "prueba de humo T6, 2 reps"),
+CARPETA_DESCARTADOS = "descartados"
+# El uso lo decide la CARPETA: todo CSV que cuelgue de una carpeta llamada 'descartados' se
+# descarta y el resto se usa. NOTAS es opcional: sirve solo para dejar el motivo en la trazabilidad.
+NOTAS = {
+    "resultados_restrictivaPrimerIntento.csv": "piloto 5 reps",
+    "resultados_debil_SegundoIntento.csv": "piloto 5 reps, esquema v1, sin modelo registrado",
+    "resultados_debil_PrimerIntento.csv": "piloto 1 rep, esquema v1",
+    "resultados_restrictivaSegundoIntento.csv": "config 'debil' (nombre viejo: restrictiva), esquema anterior",
+    "tools_debil_20reps_20261109_174504.csv": "v1: prompt anterior, sin T6",
+    "tools_endurecida_20reps_20261109_175252.csv": "v1: prompt anterior, sin T6",
+    "tools_debil_humo_3reps_20261109_174250.csv": "prueba de humo, 3 reps",
+    "tools_v2_debil_humo_T6_2reps_20261109_181655.csv": "prueba de humo T6, 2 reps",
 }
+
+
+def uso_de(ruta, carpeta):
+    """(uso, motivo) de un CSV segun su ubicacion bajo 'carpeta'."""
+    partes = os.path.normpath(os.path.relpath(ruta, carpeta)).split(os.sep)
+    nota = NOTAS.get(partes[-1], "")
+    if CARPETA_DESCARTADOS in partes[:-1]:
+        return DESCARTAR, nota or f"en {CARPETA_DESCARTADOS}/"
+    return USAR, nota
+
 
 # Pares a comparar: (config A, config B, por que). Se omiten si falta alguna de las dos.
 PARES = [
@@ -191,20 +195,16 @@ def main():
         nombre = os.path.basename(p)
         if nombre in rutas:
             sys.exit(f"El archivo '{nombre}' aparece dos veces:\n  {rutas[nombre]}\n  {p}\n"
-                     "Los nombres no pueden repetirse entre subcarpetas (el MANIFIESTO decide por nombre).")
+                     "Los nombres no pueden repetirse entre subcarpetas.")
         rutas[nombre] = p
     archivos = sorted(rutas)
-    no_encontrados = [fn for fn, (uso, _) in MANIFIESTO.items() if uso == USAR and fn not in rutas]
 
     trazab, prompts, tools = [], collections.defaultdict(list), collections.defaultdict(list)
     tools_archivo = {}
-    sin_clasificar = []
     for fn in archivos:
         campos, filas = leer(rutas[fn])
         esq = esquema(campos)
-        uso, motivo = MANIFIESTO.get(fn, ("sin clasificar", "no figura en MANIFIESTO: no se analiza"))
-        if fn not in MANIFIESTO:
-            sin_clasificar.append(fn)
+        uso, motivo = uso_de(rutas[fn], carpeta)
         if "caso" in campos and "variante" in campos:
             reps = sorted({n for n in collections.Counter((r["caso"], r["variante"]) for r in filas).values()})
         else:
@@ -226,12 +226,13 @@ def main():
         if esq.startswith("tools"):
             if cfg in tools_archivo:
                 sys.exit(f"Dos archivos 'usar' de herramientas para la config '{cfg}': "
-                         f"{tools_archivo[cfg]} y {fn}. Dejá uno solo en MANIFIESTO.")
+                         f"{tools_archivo[cfg]} y {fn}. Mové el viejo a {CARPETA_DESCARTADOS}/.")
             tools_archivo[cfg] = fn
             tools[cfg] = filas
         elif esq.startswith("prompts") and esq != "prompts-v1":
             if cfg in prompts:
-                sys.exit(f"Dos archivos 'usar' para la config '{cfg}'. Dejá uno solo en MANIFIESTO.")
+                sys.exit(f"Dos archivos 'usar' para la config '{cfg}' (el segundo es {fn}). "
+                         f"Mové el viejo a {CARPETA_DESCARTADOS}/.")
             prompts[cfg] = filas
         else:
             print(f"AVISO: {fn} tiene esquema {esq}, no se usa.")
@@ -251,9 +252,6 @@ def main():
     for t in trazab:
         md.append("| " + " | ".join(str(t[k]) for k in cols_traza) + " |")
     md.append("")
-    if no_encontrados:
-        md += ["## ATENCION: archivos 'usar' del MANIFIESTO que no se encontraron", ""]
-        md += [f"- {fn}" for fn in no_encontrados] + [""]
 
     conteos = {}   # (config, caso, variante) -> Counter
     orden_var = []
@@ -515,15 +513,6 @@ def main():
     print(f"Detector: {'reclasificado' if reclasificar else 'guardado en los CSV'}")
     for c, v in faltan.items():
         print(f"AVISO: a '{c}' le faltan variantes: {', '.join(v)}")
-    if no_encontrados:
-        print("\nAVISO: archivos 'usar' del MANIFIESTO que no se encontraron en la carpeta:")
-        for fn in no_encontrados:
-            print("  -", fn)
-    if sin_clasificar:
-        print("\nAVISO: estos CSV no figuran en MANIFIESTO y NO se analizaron:")
-        for fn in sin_clasificar:
-            print("  -", fn)
-        print("Agregalos a MANIFIESTO (usar / descartar) para que cuenten.")
     print(f"\nListo. Mirá {OUT}/resumen.md (tablas) y los CSV de {OUT}/.")
 
 
