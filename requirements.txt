@@ -1,0 +1,7 @@
+# ShopBot - laboratorio de prompt injection
+# Sin versiones fijas a propósito. Cuando todo funcione y antes de las corridas finales,
+# guardar las versiones reales con:  pip freeze > requirements.lock.txt
+streamlit
+langchain-core
+langchain-ollama
+python-dotenv
