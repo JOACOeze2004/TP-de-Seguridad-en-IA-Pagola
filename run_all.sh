@@ -6,6 +6,9 @@
 #   SOLO=tools   ./run_all.sh     solo pruebas_tools.py (LLM03)
 #   ANALIZAR=1   ./run_all.sh     al final corre analisis.py --reclasificar
 #
+# Los .py viven en src/ (se puede cambiar con SRC=otra_carpeta). El script se queda parado
+# en la raiz del repo: asi evidencia/, los CSV y analisis_out/ quedan en la raiz.
+#
 # Hay que correrlo con el venv activado, Ollama andando y los scripts congelados
 # (detectores.py final). En Windows: Git Bash o WSL.
 set -euo pipefail
@@ -14,11 +17,17 @@ cd "$(dirname "$0")"
 REPS_P=${1:-30}
 REPS_T=${2:-20}
 PY=${PYTHON:-python}
+SRC=${SRC:-src}
 SOLO=${SOLO:-todo}
 EV=evidencia
 CONFIGS_P="laxa debil estricta filtro estricta_filtro sin_secretos segmentada"
 CONFIGS_T="debil endurecida"
 nuevos=()
+
+[ -d "$SRC" ] || { echo "No encuentro la carpeta '$SRC/' (corré el script desde la raiz del repo, o usá SRC=ruta)"; exit 1; }
+for f in pruebas.py pruebas_tools.py analisis.py detectores.py defensas.py herramientas.py; do
+  [ -f "$SRC/$f" ] || { echo "Falta $SRC/$f"; exit 1; }
+done
 
 if [ -z "${SKIP_CHECK:-}" ]; then
   curl -sf http://localhost:11434 >/dev/null || { echo "Ollama no responde en localhost:11434 (probá: ollama serve)"; exit 1; }
@@ -41,7 +50,7 @@ echo "Modelo: ${MODELO:-(el de .env, o llama3.2)} | reps prompts: $REPS_P | reps
 if [ "$SOLO" != "tools" ]; then
   for c in $CONFIGS_P; do
     echo; echo "=== prompts: $c ($REPS_P reps) ==="
-    $PY pruebas.py "$c" "$REPS_P"
+    $PY "$SRC/pruebas.py" "$c" "$REPS_P"
     mover "resultados_${c}_[0-9]*.csv" "$EV/llm01_prompts/$c"
   done
 fi
@@ -49,20 +58,20 @@ fi
 if [ "$SOLO" != "prompts" ]; then
   for c in $CONFIGS_T; do
     echo; echo "=== tools: $c ($REPS_T reps) ==="
-    $PY pruebas_tools.py "$c" "$REPS_T"
+    $PY "$SRC/pruebas_tools.py" "$c" "$REPS_T"
     mover "resultados_tools_${c}_[0-9]*.csv" "$EV/llm03_tools/$c"
   done
 fi
 
 # líneas listas para pegar en el MANIFIESTO de analisis.py
 {
-  echo "# Pegar en MANIFIESTO (analisis.py) y pasar los CSV viejos de las mismas configs a DESCARTAR:"
+  echo "# Pegar en MANIFIESTO (src/analisis.py) y pasar los CSV viejos de las mismas configs a DESCARTAR:"
   for f in "${nuevos[@]}"; do echo "    \"$f\": (USAR, \"tanda final\"),"; done
 } | tee manifiesto_sugerido.txt
 
 if [ "${ANALIZAR:-0}" = "1" ]; then
   echo; echo "=== análisis ==="
-  $PY analisis.py "$EV" --reclasificar
+  $PY "$SRC/analisis.py" "$EV" --reclasificar
 else
-  echo; echo "Siguiente paso: actualizar MANIFIESTO y correr:  python analisis.py $EV --reclasificar"
+  echo; echo "Siguiente paso: actualizar MANIFIESTO y correr:  python $SRC/analisis.py $EV --reclasificar"
 fi
