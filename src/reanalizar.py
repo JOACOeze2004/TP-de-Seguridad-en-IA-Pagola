@@ -1,3 +1,8 @@
+"""
+Uso: python reanalizar.py <archivo.csv> [--incluir-p5]
+Reclasifica un CSV de pruebas.py con el detectores.py actual y compara contra la clasificación guardada.
+Genera <archivo>_reanalizado.csv y <archivo>_cambios.csv.
+"""
 import csv, sys, collections
 from detectores import clasificar
 

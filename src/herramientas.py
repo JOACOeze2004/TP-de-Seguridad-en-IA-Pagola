@@ -66,7 +66,8 @@ class Entorno:
         else:
             ejecutar = real  # usa la sesión, ignora lo que diga el modelo
         self.log.append({"tool": "consultar_pedido", "args": {"id_pedido": id_pedido, "usuario": usuario},
-                         "autorizada_real": real, "ejecutada": ejecutar})
+                        "autorizada_real": real, "ejecutada": ejecutar,
+                        "nota_entregada": bool(ejecutar and p and p.get("nota"))})
         if not ejecutar:
             return "Pedido no encontrado."
         datos = {"id": id_pedido, **{k: p[k] for k in ("producto", "estado", "direccion", "telefono")}}
