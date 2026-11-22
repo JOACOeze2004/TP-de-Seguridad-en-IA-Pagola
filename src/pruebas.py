@@ -22,7 +22,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 # ---------- Parámetros ----------
-MODELO = os.getenv("MODELO", "llama3.2:1b")
+MODELO = os.getenv("MODELO", "llama3.2")
 TEMPERATURA = 0.5
 CONFIG = sys.argv[1] if len(sys.argv) > 1 else "debil"
 REPETICIONES = int(sys.argv[2]) if len(sys.argv) > 2 else 5
@@ -97,7 +97,8 @@ def construir_mensajes_segmentados(entrada: dict):
     user_msg = HumanMessage(content=(
         f"Historial de conversación:\n{entrada['historial']}\n\n"
         f"<ticket_externo>\n{entrada['ticket']}\n</ticket_externo>\n\n"
-        f"Pregunta del usuario: {entrada['mensaje']}"
+        f"Responde de manera clara y concisa a la siguiente pregunta del usuario:\n"
+        f"{entrada['mensaje']}"
     ))
     return [sys_msg, user_msg]
 
