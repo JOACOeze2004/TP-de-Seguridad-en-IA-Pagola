@@ -73,14 +73,30 @@ cp .env.example .env
 `.env` define `MODELO` (por defecto `llama3.2`). Lo leen `pruebas.py` y `pruebas_tools.py`.
 Si `.env` no existe, usan `llama3.2`.
 
+## Estructura del repo
+
+```
+.
+├── src/                  los .py (pruebas, detectores, defensas, herramientas, analisis, streamlit...)
+├── run_all.sh            corre todas las configs
+├── .env / .env.example
+├── requirements.txt
+├── evidencia/
+│   ├── llm01_prompts/    un subdirectorio por config (laxa, debil, estricta, filtro, estricta_filtro, sin_secretos, segmentada)
+│   ├── llm03_tools/      debil y endurecida
+│   └── descartados/      pilotos, esquemas viejos y pruebas de humo (no se analizan)
+└── analisis_out/         salida de analisis.py
+```
+
 ## Uso
 
-Siempre con el venv activado y parados en la carpeta del proyecto (`pwd` para confirmar).
+Siempre con el venv activado y parados en la **raíz del repo** (`pwd` para confirmar). Los scripts viven
+en `src/`; los CSV que generan quedan en la raíz (o en `evidencia/` si se usa `run_all.sh`).
 
 ### App para atacar a mano
 
 ```
-streamlit run streamlit_chatbot.py
+streamlit run src/streamlit_chatbot.py
 ```
 
 Se abre en http://localhost:8501. El título tiene que decir **🛒 ShopBot - Atención al cliente**.
@@ -97,7 +113,7 @@ solo existen en la batería automática.
 ### Batería automática de prompts (LLM01 / LLM02)
 
 ```
-python pruebas.py <config> <repeticiones> [variantes]
+python src/pruebas.py <config> <repeticiones> [variantes]
 ```
 
 - `<config>`:
@@ -118,10 +134,10 @@ falsos positivos del prompt estricto y del filtro.
 
 Ejemplos:
 ```
-python pruebas.py debil 1                         # prueba rápida de todo
-python pruebas.py debil 30                        # corrida completa
-python pruebas.py laxa 30 ticket_oculto,completar,apikey
-python pruebas.py estricta_filtro 30 C            # solo los casos de control
+python src/pruebas.py debil 1                         # prueba rápida de todo
+python src/pruebas.py debil 30                        # corrida completa
+python src/pruebas.py laxa 30 ticket_oculto,completar,apikey
+python src/pruebas.py estricta_filtro 30 C            # solo los casos de control
 ```
 
 Cada corrida genera `resultados_<config>_<fecha>.csv`. No mezclar filas de corridas
@@ -134,7 +150,7 @@ Columnas importantes: `nivel` (exito/parcial/fallo; en el caso C: control_ok/con
 ### Batería de herramientas (LLM03)
 
 ```
-python pruebas_tools.py <config> <repeticiones> [filtro]
+python src/pruebas_tools.py <config> <repeticiones> [filtro]
 ```
 
 - `<config>`: `debil` (el backend confía en lo que dice el modelo) o `endurecida`
@@ -147,7 +163,7 @@ y T6 (inyección indirecta por una nota en el resultado de una herramienta).
 Niveles: `exito` (el ataque tuvo efecto real), `contenido` (el modelo fue manipulado pero
 el backend lo frenó) y `fallo`. En T6, `nota_leida` indica si el modelo llegó a ver la nota.
 
-El backend simulado se puede probar sin modelo: `python herramientas.py` (tiene que decir `autotest OK`).
+El backend simulado se puede probar sin modelo: `python src/herramientas.py` (tiene que decir `autotest OK`).
 
 ### Correr todo de una vez
 
@@ -156,7 +172,7 @@ El backend simulado se puede probar sin modelo: `python herramientas.py` (tiene 
 ```
 
 Corre las 7 configs de prompts y las 2 de herramientas, y deja cada CSV en `evidencia/`.
-Al final imprime (y guarda en `manifiesto_sugerido.txt`) las líneas para pegar en el MANIFIESTO de `analisis.py`.
+Antes de analizar, mover a `evidencia/descartados/` los CSV viejos de las mismas configs.
 Variantes: `SOLO=prompts`, `SOLO=tools`, `ANALIZAR=1` (corre el análisis al final).
 En Windows, usar Git Bash o WSL (si no tiene permiso de ejecución: `bash run_all.sh`).
 Hacer esto solo cuando el código esté congelado (sobre todo `detectores.py`).
@@ -164,12 +180,13 @@ Hacer esto solo cuando el código esté congelado (sobre todo `detectores.py`).
 ### Análisis estadístico
 
 ```
-python analisis.py evidencia --reclasificar
+python src/analisis.py evidencia --reclasificar
 ```
 
-Lee todos los CSV de `evidencia/` (incluidas las subcarpetas), pero **solo analiza los que figuran como
-`usar` en el MANIFIESTO** al principio de `analisis.py`. Un CSV nuevo hay que agregarlo ahí; los viejos de la
-misma config pasan a `descartar`. Con `--reclasificar` todas las configs se miden con el mismo `detectores.py`.
+Lee todos los CSV de `evidencia/` (incluidas las subcarpetas). **Usa todo lo que no esté en una carpeta
+`descartados/`**; no hay lista que mantener. Si dos CSV usados son de la misma config, se corta con un error:
+mover el viejo a `evidencia/descartados/`. En `NOTAS` (arriba de `analisis.py`) se puede dejar el motivo de cada
+descarte para la tabla de trazabilidad. Con `--reclasificar` todas las configs se miden con el mismo `detectores.py`.
 
 Genera la carpeta `analisis_out/` con `resumen.md` (tablas: éxito por variante con intervalo de Wilson 95 %,
 comparaciones con Fisher y corrección de Holm, falsos positivos del caso C, herramientas y T6 condicionado a
@@ -178,10 +195,9 @@ comparaciones con Fisher y corrección de Holm, falsos positivos del caso C, her
 ### Reclasificar un CSV viejo
 
 ```
-python reanalizar.py resultados_debil_XXXX.csv [--incluir-p5]
+python src/reanalizar.py resultados_debil_XXXX.csv [--incluir-p5]
 ```
 
 No modifica el original: genera `..._reanalizado.csv` (todas las filas con el nivel viejo y el nuevo) y
 `..._cambios.csv` (solo las que cambian) y muestra cuántos falsos positivos y falsos negativos tenía el detector anterior.
 Revisar a mano `_cambios.csv` para validar que el detector nuevo mejora y no solo mueve el error.
-`muestreo_validacion.py`.
