@@ -6,6 +6,8 @@
 #   SOLO=tools   ./run_all.sh     solo pruebas_tools.py (LLM03)
 #   ANALIZAR=1   ./run_all.sh     al final corre analisis.py --reclasificar
 #
+# analisis.py usa todo CSV de evidencia/ salvo los que estén en evidencia/descartados/.
+#
 # Los .py viven en src/ (se puede cambiar con SRC=otra_carpeta). El script se queda parado
 # en la raiz del repo: asi evidencia/, los CSV y analisis_out/ quedan en la raiz.
 #
@@ -22,7 +24,6 @@ SOLO=${SOLO:-todo}
 EV=evidencia
 CONFIGS_P="laxa debil estricta filtro estricta_filtro sin_secretos segmentada"
 CONFIGS_T="debil endurecida"
-nuevos=()
 
 [ -d "$SRC" ] || { echo "No encuentro la carpeta '$SRC/' (corré el script desde la raiz del repo, o usá SRC=ruta)"; exit 1; }
 for f in pruebas.py pruebas_tools.py analisis.py detectores.py defensas.py herramientas.py; do
@@ -41,7 +42,6 @@ mover() {
   [ -n "$f" ] || { echo "No encontré el CSV generado ($1)"; exit 1; }
   mkdir -p "$2"
   mv "$f" "$2/"
-  nuevos+=("$f")
   echo "-> $2/$f"
 }
 
@@ -63,15 +63,12 @@ if [ "$SOLO" != "prompts" ]; then
   done
 fi
 
-# líneas listas para pegar en el MANIFIESTO de analisis.py
-{
-  echo "# Pegar en MANIFIESTO (src/analisis.py) y pasar los CSV viejos de las mismas configs a DESCARTAR:"
-  for f in "${nuevos[@]}"; do echo "    \"$f\": (USAR, \"tanda final\"),"; done
-} | tee manifiesto_sugerido.txt
+echo
+echo "Aviso: antes de analizar, mové a $EV/descartados/ los CSV viejos de las mismas configs (analisis.py usa todo lo que no esté ahí)."
 
 if [ "${ANALIZAR:-0}" = "1" ]; then
   echo; echo "=== análisis ==="
   $PY "$SRC/analisis.py" "$EV" --reclasificar
 else
-  echo; echo "Siguiente paso: actualizar MANIFIESTO y correr:  python $SRC/analisis.py $EV --reclasificar"
+  echo; echo "Siguiente paso:  python $SRC/analisis.py $EV --reclasificar"
 fi
