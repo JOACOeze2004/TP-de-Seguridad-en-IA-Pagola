@@ -5,6 +5,8 @@ Uso:  streamlit run src/streamlit_chatbot.py
 Prompts, configs y casos vienen de core.py (los mismos que usa la batería automática).
 """
 import json
+import os
+import urllib.request
 import streamlit as st
 from langchain_core.messages import AIMessage, HumanMessage
 
@@ -12,6 +14,78 @@ import core
 from core import CONFIGS, DESCRIPCION_CONFIGS, CASOS, CASOS_TOOLS, NOTAS_T6
 from herramientas import Entorno
 from ataques_info import info as info_ataque, categoria
+from defensas import contiene_secreto
+
+# El veredicto usa el detector de la bateria. Si falla el import, la app sigue andando sin veredicto.
+try:
+    from detectores import clasificar
+except Exception:  # pragma: no cover
+    clasificar = None
+
+_host = os.getenv("OLLAMA_HOST", "http://localhost:11434")
+OLLAMA_URL = _host if _host.startswith("http") else f"http://{_host}"
+
+
+def estado_ollama(modelo):
+    """'ok' | 'caido' (Ollama no responde) | 'sin_modelo' (responde pero falta el modelo)."""
+    try:
+        with urllib.request.urlopen(f"{OLLAMA_URL}/api/tags", timeout=2) as r:
+            nombres = [m.get("name", "") for m in json.load(r).get("models", [])]
+    except Exception:
+        return "caido"
+    base = modelo if ":" in modelo else modelo + ":latest"
+    return "ok" if (modelo in nombres or base in nombres) else "sin_modelo"
+
+
+def construir_veredicto(es_preset, ataque, final, crudo, tokens_out):
+    """Veredicto automatico de una respuesta del modo Chat.
+    - Ataque precargado: usa detectores.clasificar con el caso/variante (igual que la bateria).
+    - Mensaje propio: no hay variante, solo se revisa si se filtro un secreto."""
+    if es_preset:
+        caso, variante = ataque["clave"].split("/", 1)
+        if clasificar is not None:
+            try:
+                nivel, motivo, _ = clasificar(caso, variante, final, tokens_out)
+                if motivo != "sin detector":
+                    nm = clasificar(caso, variante, crudo, tokens_out)[0] if crudo != final else None
+                    return {"tipo": "detector", "caso": caso, "nivel": nivel, "motivo": motivo, "nivel_modelo": nm}
+            except Exception:
+                pass
+        return {"tipo": "sin_detector", "caso": caso}
+    return {"tipo": "secreto", "filtra": contiene_secreto(crudo)}
+
+
+_ETIQUETAS_ATAQUE = {
+    "exito": (st.error, "⚠️ Ataque exitoso"),
+    "parcial": (st.warning, "🟡 Éxito parcial (ambiguo, conviene leer la respuesta)"),
+    "fallo": (st.success, "🛡️ El bot resistió el ataque"),
+}
+_ETIQUETAS_CONTROL = {
+    "control_ok": (st.success, "✅ Respondió bien la consulta legítima"),
+    "control_falla": (st.error, "❌ Falso positivo: rechazó o bloqueó una consulta legítima"),
+    "parcial": (st.warning, "🟡 Respuesta pobre a una consulta legítima"),
+}
+
+
+def mostrar_veredicto(v):
+    if not v:
+        return
+    tipo = v.get("tipo")
+    if tipo == "secreto":
+        if v["filtra"]:
+            st.error("🔓 Se filtró un secreto (API key o código de descuento).")
+        else:
+            st.caption("Mensaje propio: no hay veredicto automático (solo se revisa si se filtra un secreto, y no se filtró ninguno).")
+        return
+    if tipo == "sin_detector":
+        st.caption(f"El caso {v['caso']} todavía no tiene detector: sin veredicto automático.")
+        return
+    etiquetas = _ETIQUETAS_CONTROL if v["caso"] == "C" else _ETIQUETAS_ATAQUE
+    fn, texto = etiquetas.get(v["nivel"], (st.info, v["nivel"]))
+    fn(f"{texto}  \nMotivo: {v['motivo']}")
+    nm = v.get("nivel_modelo")
+    if nm and nm != v["nivel"]:
+        st.caption(f"🛡️ Sin el filtro de salida, el modelo habría dado: **{nm}**.")
 
 st.set_page_config(page_title="ShopBot", page_icon="🛒", layout="wide")
 st.title("🛒 ShopBot - Atención al cliente")
@@ -38,6 +112,7 @@ def enviar_ataque(presets, clave):
     nueva_conversacion()
     m, t, *resto = presets[clave]
     st.session_state.pendiente = m
+    st.session_state.ataque = {"clave": clave, "mensaje": m, "ticket": t}
     st.session_state.ticket = t
     st.session_state.nota = resto[0] if resto else ""
 
@@ -106,6 +181,14 @@ with st.sidebar:
               help="Empieza una conversación nueva, carga el ticket/nota y envía el mensaje.")
     st.button("🗑️ Nueva conversación", on_click=nueva_conversacion)
 
+# ---------- Estado de Ollama ----------
+_estado = estado_ollama(model_name)
+if _estado == "caido":
+    st.error("Ollama no responde. Abrilo (o corré `ollama serve` en otra terminal) y recargá la página. "
+             "Más fácil: cerrá esto y usá `iniciar.sh` / `iniciar.bat`, que lo levanta solo.")
+elif _estado == "sin_modelo":
+    st.error(f"Ollama está andando pero falta el modelo `{model_name}`. Bajalo con: `ollama pull {model_name}`")
+
 # ---------- Historial ----------
 for msg in st.session_state.mensajes:
     role = "assistant" if isinstance(msg, AIMessage) else "user"
@@ -116,6 +199,7 @@ for msg in st.session_state.mensajes:
             st.caption("🛡️ El filtro de salida bloqueó esta respuesta.")
             with st.expander("Ver lo que dijo el modelo (antes del filtro)"):
                 st.text(crudo)
+        mostrar_veredicto(getattr(msg, "additional_kwargs", {}).get("veredicto"))
 
 
 def formatear_historial(mensajes):
@@ -151,6 +235,11 @@ def panel_herramientas(env):
 # ---------- Entrada ----------
 escrita = st.chat_input("Escribe tu mensaje:")
 pregunta = escrita or st.session_state.pop("pendiente", None)
+ataque = st.session_state.pop("ataque", None) if pregunta else None
+# Solo hay veredicto por detector si es el primer mensaje de un ataque precargado sin editar.
+es_preset = bool(not en_tools and ataque and pregunta == ataque["mensaje"]
+                 and ticket.strip() == ataque["ticket"].strip() and not st.session_state.mensajes)
+veredicto = None
 
 if pregunta:
     with st.chat_message("user"):
@@ -194,6 +283,7 @@ if pregunta:
                         st.caption("🛡️ El filtro de salida bloqueó esta respuesta.")
                         with st.expander("Ver lo que dijo el modelo (antes del filtro)"):
                             st.text(crudo)
+                    crudo_txt = crudo
                 else:
                     placeholder = st.empty()
                     respuesta = ""
@@ -205,9 +295,14 @@ if pregunta:
                             tin = chunk.usage_metadata.get("input_tokens")
                             tout = chunk.usage_metadata.get("output_tokens")
                     placeholder.markdown(respuesta)
+                    crudo_txt = respuesta
                 if tin is not None:
                     st.caption(f"Tokens → entrada: {tin} | salida: {tout}")
+                veredicto = construir_veredicto(es_preset, ataque, respuesta, crudo_txt, tout)
+                mostrar_veredicto(veredicto)
 
+        if veredicto:
+            extra["veredicto"] = veredicto
         st.session_state.mensajes.append(HumanMessage(content=pregunta))
         st.session_state.mensajes.append(AIMessage(content=respuesta, additional_kwargs=extra))
 
