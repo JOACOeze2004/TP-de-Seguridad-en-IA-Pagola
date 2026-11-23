@@ -32,7 +32,7 @@ Dos pasos:
      precision y recall del detector para el evento de interes, matriz de confusion y, si hubo
      solapamiento, el acuerdo entre humanos. Escribe resultado_validacion.md y desacuerdos.csv.
 
-Requiere analisis.py en la misma carpeta (reusa la regla de carpetas y la lectura de CSV).
+Requiere analisis.py en la misma carpeta (reusa uso_de y la lectura de CSV).
 """
 import argparse, csv, os, sys, math, random, glob, collections
 import analisis
@@ -125,7 +125,7 @@ def cargar_pool(carpeta, incluir_tools, reclasificar):
     pool = collections.defaultdict(list)   # caso -> filas
     usados = []
     for fn in sorted(rutas):
-        uso, _ = analisis.uso_de(rutas[fn], carpeta)
+        uso, _ = analisis.uso_de(rutas[fn], carpeta)   # usa la carpeta: todo lo que no esté en descartados/
         if uso != analisis.USAR:
             continue
         campos, filas = analisis.leer(rutas[fn])
@@ -188,7 +188,7 @@ def generar(a):
 
     pool, usados = cargar_pool(carpeta, a.incluir_tools, a.reclasificar)
     if not pool:
-        sys.exit("No hay filas para muestrear: revisa la carpeta (los CSV en 'descartados/' no se usan).")
+        sys.exit("No hay filas para muestrear: revisa la carpeta (los CSV en descartados/ se ignoran).")
     elegidas, rng = muestrear(pool, fraccion, semilla, min_nivel)
     elegidas.sort(key=lambda x: (x["caso"], x["archivo"], x["fila"]))
     rng.shuffle(elegidas)
