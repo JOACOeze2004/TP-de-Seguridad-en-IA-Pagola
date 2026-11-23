@@ -8,6 +8,17 @@ Basado en el chatbot de ejemplo del profesor *Hugo Pagola* (LangChain + Streamli
 
 ## Instalación
 
+### Inicio rápido
+
+Con Python 3 y [Ollama](https://ollama.com) instalados, parados en la raíz del repo:
+
+```
+./iniciar.sh          # Linux / Mac
+iniciar.bat           # Windows (doble clic o desde la terminal)
+```
+
+Crea el entorno virtual, instala las dependencias, levanta Ollama, baja el modelo si falta y abre ShopBot en http://localhost:8501. Si `iniciar.sh` no tiene permiso de ejecución: `bash iniciar.sh`. Los pasos manuales de abajo siguen valiendo si preferís hacerlo a mano.
+
 ### 1. Instalar Ollama
 
 **Linux**
