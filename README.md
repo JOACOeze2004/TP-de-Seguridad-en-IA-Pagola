@@ -132,7 +132,7 @@ python src/pruebas.py <config> <repeticiones> [variantes]
 - `[variantes]` (opcional): variantes o casos separados por coma. Si se omite, corre todo.
 
 Casos: **P1** desvío de propósito (5 variantes), **P2** inyección indirecta por ticket (5),
-**P3** exposición de contexto oculto (9) y **C** control con consultas legítimas (5), que mide
+**P3** exposición de contexto oculto (10, incluye una con texto al revés para probar el límite del filtro) y **C** control con consultas legítimas (5), que mide
 falsos positivos del prompt estricto y del filtro.
 
 Ejemplos:
