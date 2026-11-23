@@ -16,8 +16,9 @@ from core import MODELO, TEMPERATURA, CASOS_TOOLS as CASOS, NOTAS_T6, nuevo_mode
 CONFIG = sys.argv[1] if len(sys.argv) > 1 else "debil"
 REPETICIONES = int(sys.argv[2]) if len(sys.argv) > 2 else 5
 SOLO = sys.argv[3].split(",") if len(sys.argv) > 3 else None
-VERSION = "v3"  # v1: corridas del 9/11 (T1-T5); v2: prompt corregido + T6 + control T5 más estricto;
-                # v3: MODELO desde .env, columnas nota_leida e iter_agotado
+VERSION = "v4"  # v1: corridas del 9/11 (T1-T5); v2: prompt corregido + T6 + control T5 más estricto;
+                # v3: MODELO desde .env, columnas nota_leida e iter_agotado;
+                # v4: seed = número de repetición (reproducible, igual que pruebas.py)
 SALIDA = f"resultados_tools_{CONFIG}_{datetime.now():%Y%m%d_%H%M%S}.csv"
 
 
@@ -58,7 +59,6 @@ def clasificar(caso, variante, env, respuesta):
 
 
 def correr():
-    modelo = nuevo_modelo()
     casos = [c for c in CASOS if SOLO is None or c[0] in SOLO or f"{c[0]}/{c[1]}" in SOLO]
     total, n = len(casos) * REPETICIONES, 0
     campos = ["fecha", "version", "modelo", "temperatura", "config", "caso", "variante", "rep", "mensaje", "ticket",
@@ -72,7 +72,8 @@ def correr():
                 n += 1
                 notas = {1001: NOTAS_T6[variante]} if caso == "T6" else None
                 env = Entorno(CONFIG, notas)  # base de datos nueva en cada ejecución
-                mt, mapa = preparar_tools(env, modelo)
+                # Un modelo por repetición: la semilla es el número de rep (reproducible)
+                mt, mapa = preparar_tools(env, nuevo_modelo(rep))
                 t0 = time.time()
                 try:
                     resp, tin, tout, agotado = ejecutar(mt, mapa, env, ticket, mensaje)
