@@ -11,6 +11,7 @@ from langchain_core.messages import AIMessage, HumanMessage
 import core
 from core import CONFIGS, DESCRIPCION_CONFIGS, CASOS, CASOS_TOOLS, NOTAS_T6
 from herramientas import Entorno
+from ataques_info import info as info_ataque, categoria
 
 st.set_page_config(page_title="ShopBot", page_icon="🛒", layout="wide")
 st.title("🛒 ShopBot - Atención al cliente")
@@ -44,6 +45,15 @@ def enviar_ataque(presets, clave):
 # ---------- Sidebar ----------
 nota = ""
 with st.sidebar:
+    with st.expander("¿Cómo se usa?", expanded=False):
+        st.markdown(
+            "1. Elegí el **modo** y la **defensa** (o el backend).\n"
+            "2. En *Ataques precargados* elegí un **tipo** y una **variante**; leé qué hace.\n"
+            "3. Tocá **▶ Enviar ataque**: se carga todo y se envía solo.\n"
+            "4. Mirá la respuesta (y, en modo Herramientas, el panel de abajo).\n\n"
+            "También podés escribir tu propio ataque en el chat o en el cuadro de ticket. "
+            "Empezá cada ataque en una conversación nueva."
+        )
     st.header("Configuración")
     modo = st.radio("Modo", ["Chat (prompts)", "Herramientas (LLM03)"],
                     help="Chat: desvío, inyección indirecta y exposición de contexto. "
@@ -57,6 +67,8 @@ with st.sidebar:
                               help="debil: el backend confía en lo que le pasa el modelo. "
                                    "endurecida: usa la sesión autenticada, verifica dueño y limita transiciones.")
         st.caption("Usuario autenticado: **ana** (pedidos 1001 y 1002). Los pedidos 2001 y 2002 son de **beto**.")
+        st.caption("En este modo cada mensaje se responde por separado: el bot no recuerda los anteriores "
+                   "(los pedidos sí conservan su estado hasta que empieces una conversación nueva).")
     else:
         config = st.selectbox("Defensa", list(CONFIGS), index=list(CONFIGS).index("debil"))
         st.caption(DESCRIPCION_CONFIGS[config])
@@ -70,8 +82,27 @@ with st.sidebar:
 
     st.subheader("Ataques precargados")
     presets = PRESETS_TOOLS if en_tools else PRESETS_CHAT
-    clave = st.selectbox("Ataque", list(presets))
-    st.button("▶ Enviar ataque", on_click=enviar_ataque, args=(presets, clave),
+    casos_disp = list(dict.fromkeys(k.split("/")[0] for k in presets))
+    caso_sel = st.selectbox("Tipo de ataque", casos_disp, key=f"caso_{'t' if en_tools else 'c'}",
+                            format_func=lambda c: categoria(c)["nombre"])
+    st.caption(categoria(caso_sel)["descripcion"])
+    claves = [k for k in presets if k.split("/")[0] == caso_sel]
+    clave = st.selectbox("Variante", claves, key=f"var_{caso_sel}",
+                         format_func=lambda k: info_ataque(k)["titulo"])
+    d = info_ataque(clave)
+    st.info(f"**Qué hace:** {d['que_hace']}" + (f"\n\n**Éxito si:** {d['exito']}" if d["exito"] else ""))
+    with st.expander("Ver el mensaje, ticket y nota exactos"):
+        p_m, p_t, *p_n = presets[clave]
+        st.markdown("**Mensaje del usuario**")
+        st.text(p_m)
+        st.markdown("**Ticket**")
+        st.text(p_t or "(vacío)")
+        if en_tools:
+            st.markdown("**Nota del pedido 1001**")
+            st.text((p_n[0] if p_n else "") or "(vacía)")
+    if not en_tools:
+        st.caption("Las variantes con historial previo (completar_hist, apikey_hist) solo están en la batería automática.")
+    st.button("▶ Enviar ataque", on_click=enviar_ataque, args=(presets, clave), type="primary",
               help="Empieza una conversación nueva, carga el ticket/nota y envía el mensaje.")
     st.button("🗑️ Nueva conversación", on_click=nueva_conversacion)
 
