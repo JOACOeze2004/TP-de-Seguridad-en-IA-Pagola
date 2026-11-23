@@ -22,11 +22,11 @@ PY=${PYTHON:-python}
 SRC=${SRC:-src}
 SOLO=${SOLO:-todo}
 EV=evidencia
-CONFIGS_P="laxa debil estricta filtro estricta_filtro sin_secretos segmentada"
+CONFIGS_P="laxa debil estricta filtro estricta_filtro sin_secretos segmentada combinada"
 CONFIGS_T="debil endurecida"
 
 [ -d "$SRC" ] || { echo "No encuentro la carpeta '$SRC/' (corré el script desde la raiz del repo, o usá SRC=ruta)"; exit 1; }
-for f in pruebas.py pruebas_tools.py analisis.py detectores.py defensas.py herramientas.py; do
+for f in pruebas.py pruebas_tools.py core.py analisis.py detectores.py defensas.py herramientas.py; do
   [ -f "$SRC/$f" ] || { echo "Falta $SRC/$f"; exit 1; }
 done
 
