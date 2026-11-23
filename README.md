@@ -77,12 +77,12 @@ Si `.env` no existe, usan `llama3.2`.
 
 ```
 .
-├── src/                  los .py (pruebas, detectores, defensas, herramientas, analisis, streamlit...)
+├── src/                  los .py (core, pruebas, detectores, defensas, herramientas, analisis, streamlit...)
 ├── run_all.sh            corre todas las configs
 ├── .env / .env.example
 ├── requirements.txt
 ├── evidencia/
-│   ├── llm01_prompts/    un subdirectorio por config (laxa, debil, estricta, filtro, estricta_filtro, sin_secretos, segmentada)
+│   ├── llm01_prompts/    un subdirectorio por config (laxa, debil, estricta, filtro, estricta_filtro, sin_secretos, segmentada, combinada)
 │   ├── llm03_tools/      debil y endurecida
 │   └── descartados/      pilotos, esquemas viejos y pruebas de humo (no se analizan)
 └── analisis_out/         salida de analisis.py
@@ -91,7 +91,7 @@ Si `.env` no existe, usan `llama3.2`.
 ## Uso
 
 Siempre con el venv activado y parados en la **raíz del repo** (`pwd` para confirmar). Los scripts viven
-en `src/`; los CSV que generan quedan en la raíz (o en `evidencia/` si se usa `run_all.sh`).
+en `src/` (`core.py` tiene los prompts, configs y casos que comparten la app y las baterías); los CSV que generan quedan en la raíz (o en `evidencia/` si se usa `run_all.sh`).
 
 ### App para atacar a mano
 
@@ -106,9 +106,11 @@ Si dice "Chatbot Básico", se está corriendo otro archivo u otro proceso viejo
 Para probar **inyección indirecta**: pegar la instrucción en el cuadro "Ticket / FAQ externa"
 de la barra lateral y, en el chat, hacer una pregunta normal (por ejemplo "¿Cuánto tarda un envío?").
 
-Para que las pruebas sean comparables, empezar **cada ataque en una conversación nueva**
-(botón "Nueva conversación"). La app usa el prompt `debil`; las demás configuraciones
-solo existen en la batería automática.
+La barra lateral tiene un selector de **modo** (Chat o Herramientas), un selector de **defensa/backend**
+y un desplegable de **ataques precargados** (los mismos de las baterías). "Enviar ataque" empieza una
+conversación nueva, carga el ticket o la nota y envía el mensaje. En modo Herramientas la app muestra
+el registro de llamadas y el estado de los pedidos. Para ataques a mano, empezar **cada uno en una
+conversación nueva** (botón "Nueva conversación") para que sean comparables.
 
 ### Batería automática de prompts (LLM01 / LLM02)
 
@@ -124,6 +126,7 @@ python src/pruebas.py <config> <repeticiones> [variantes]
   - `estricta_filtro`: `estricta` + filtro de salida
   - `sin_secretos`: prompt sin credenciales internas (minimización)
   - `segmentada`: ticket etiquetado como no confiable y separado en mensajes system/human
+  - `combinada`: reglas estrictas + `segmentada` + filtro de salida (defensa en profundidad)
 - `<repeticiones>`: cuántas veces se corre cada variante. Para tasas confiables, 30.
   Cada repetición usa su número como `seed`, así que se puede reproducir.
 - `[variantes]` (opcional): variantes o casos separados por coma. Si se omite, corre todo.
@@ -171,7 +174,7 @@ El backend simulado se puede probar sin modelo: `python src/herramientas.py` (ti
 ./run_all.sh [reps_prompts] [reps_tools]      # por defecto 30 y 20
 ```
 
-Corre las 7 configs de prompts y las 2 de herramientas, y deja cada CSV en `evidencia/`.
+Corre las 8 configs de prompts y las 2 de herramientas, y deja cada CSV en `evidencia/`.
 Antes de analizar, mover a `evidencia/descartados/` los CSV viejos de las mismas configs.
 Variantes: `SOLO=prompts`, `SOLO=tools`, `ANALIZAR=1` (corre el análisis al final).
 En Windows, usar Git Bash o WSL (si no tiene permiso de ejecución: `bash run_all.sh`).

@@ -63,6 +63,9 @@ PARES = [
     ("estricta_filtro", "estricta", "efecto del filtro de salida (mismo prompt)"),
     ("segmentada", "debil", "efecto de segmentar el ticket (cambia varias cosas a la vez, ver informe)"),
     ("sin_secretos", "laxa", "efecto de minimizar secretos"),
+    ("combinada", "estricta_filtro", "efecto de segmentar el ticket (mismas reglas estrictas y mismo filtro)"),
+    ("combinada", "segmentada", "efecto de sumar reglas estrictas y filtro a la segmentacion"),
+    ("combinada", "debil", "defensa en profundidad vs la config de la app original"),
 ]
 # Mismo texto de ataque por distinto canal: (ticket en el prompt) vs (nota en el resultado de la herramienta).
 # nota_entregado y nota_json NO son identicos a sus equivalentes de T4, asi que no se comparan.
@@ -71,7 +74,7 @@ PARES_CANAL = [
     (("T3", "ticket_supervisor"), ("T6", "nota_supervisor")),
     (("T4", "ticket_cancelar"), ("T6", "nota_cancelar")),
 ]
-ORDEN_CONFIGS = ["laxa", "debil", "estricta", "filtro", "estricta_filtro", "sin_secretos", "segmentada"]
+ORDEN_CONFIGS = ["laxa", "debil", "estricta", "filtro", "estricta_filtro", "sin_secretos", "segmentada", "combinada"]
 ATAQUE_TOOLS = {"T1", "T2", "T3", "T4", "T6"}
 OUT = "analisis_out"
 SUFIJOS_DERIVADOS = ("_reanalizado.csv", "_cambios.csv")   # salidas de reanalizar.py: se ignoran
