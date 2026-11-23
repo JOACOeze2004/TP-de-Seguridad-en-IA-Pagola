@@ -1,0 +1,36 @@
+archivo,carpeta,config,esquema,version,detector,seed,modelo,fecha,filas,reps_por_variante,uso,motivo
+resultados_combinada_20261123_165938.csv,csvs/llm01_prompts/combinada,combinada,prompts-v3,p-v3,d-v3,si,llama3.2,2026-11-23,750,30,usar,
+resultados_debil_20261122_162611.csv,csvs/descartados/prompts,debil,prompts-v3,p-v3,sin_version,si,llama3.2,2026-11-22,720,30,descartar,en descartados/
+resultados_debil_20261123_162046.csv,csvs/llm01_prompts/debil,debil,prompts-v3,p-v3,d-v3,si,llama3.2,2026-11-23,750,30,usar,
+resultados_debil_PrimerIntento.csv,csvs/descartados/prompts,debil,prompts-v1,(sin registrar),(sin registrar),no,(sin registrar),(sin registrar),20,1,descartar,"piloto 1 rep, esquema v1"
+resultados_debil_SegundoIntento.csv,csvs/descartados/prompts,debil,prompts-v1,(sin registrar),(sin registrar),no,(sin registrar),(sin registrar),100,5,descartar,"piloto 5 reps, esquema v1, sin modelo registrado"
+resultados_estricta.csv,csvs/descartados/prompts,estricta,prompts-v2-filtro,(sin registrar),(sin registrar),no,llama3.2,2026-11-09,720,30,descartar,en descartados/
+resultados_estricta_20261122_163216.csv,csvs/descartados/prompts,estricta,prompts-v3,p-v3,sin_version,si,llama3.2,2026-11-22,720,30,descartar,en descartados/
+resultados_estricta_20261123_162643.csv,csvs/llm01_prompts/estricta,estricta,prompts-v3,p-v3,d-v3,si,llama3.2,2026-11-23,750,30,usar,
+resultados_estricta_filtro.csv,csvs/descartados/prompts,estricta_filtro,prompts-v2-filtro,(sin registrar),(sin registrar),no,llama3.2,2026-11-09,720,30,descartar,en descartados/
+resultados_estricta_filtro_20261122_164615.csv,csvs/descartados/prompts,estricta_filtro,prompts-v3,p-v3,sin_version,si,llama3.2,2026-11-22,720,30,descartar,en descartados/
+resultados_estricta_filtro_20261123_164037.csv,csvs/llm01_prompts/estricta_filtro,estricta_filtro,prompts-v3,p-v3,d-v3,si,llama3.2,2026-11-23,750,30,usar,
+resultados_filtro.csv,csvs/descartados/prompts,filtro,prompts-v2-filtro,(sin registrar),(sin registrar),no,llama3.2,2026-11-09,720,30,descartar,en descartados/
+resultados_filtro_20261122_163751.csv,csvs/descartados/prompts,filtro,prompts-v3,p-v3,sin_version,si,llama3.2,2026-11-22,720,30,descartar,en descartados/
+resultados_filtro_20261123_163217.csv,csvs/llm01_prompts/filtro,filtro,prompts-v3,p-v3,d-v3,si,llama3.2,2026-11-23,750,30,usar,
+resultados_laxa.csv,csvs/descartados/prompts,laxa,prompts-v2,(sin registrar),(sin registrar),no,llama3.2,2026-11-08,660,30,descartar,en descartados/
+resultados_laxa_20261122_161741.csv,csvs/descartados/prompts,laxa,prompts-v3,p-v3,sin_version,si,llama3.2,2026-11-22,720,30,descartar,en descartados/
+resultados_laxa_20261123_161233.csv,csvs/llm01_prompts/laxa,laxa,prompts-v3,p-v3,d-v3,si,llama3.2,2026-11-23,750,30,usar,
+resultados_restrictivaPrimerIntento.csv,csvs/descartados/prompts,debil,prompts-v2,(sin registrar),(sin registrar),no,llama3.2,2026-11-08,110,5,descartar,piloto 5 reps
+resultados_restrictivaSegundoIntento.csv,csvs/descartados/prompts,debil,prompts-v2,(sin registrar),(sin registrar),no,llama3.2,2026-11-08,660,30,descartar,"config 'debil' (nombre viejo: restrictiva), esquema anterior"
+resultados_segmentada_20261122_095942.csv,csvs/descartados/prompts,segmentada,prompts-v2-filtro,(sin registrar),(sin registrar),no,llama3.2,2026-11-22,720,30,descartar,en descartados/
+resultados_segmentada_20261122_165915.csv,csvs/descartados/prompts,segmentada,prompts-v3,p-v3,sin_version,si,llama3.2,2026-11-22,720,30,descartar,en descartados/
+resultados_segmentada_20261123_165345.csv,csvs/llm01_prompts/segmentada,segmentada,prompts-v3,p-v3,d-v3,si,llama3.2,2026-11-23,750,30,usar,
+resultados_sin_secretos_20261122_100639.csv,csvs/descartados/prompts,sin_secretos,prompts-v2-filtro,(sin registrar),(sin registrar),no,llama3.2,2026-11-22,720,30,descartar,en descartados/
+resultados_sin_secretos_20261122_165151.csv,csvs/descartados/prompts,sin_secretos,prompts-v3,p-v3,sin_version,si,llama3.2,2026-11-22,720,30,descartar,en descartados/
+resultados_sin_secretos_20261123_164613.csv,csvs/llm01_prompts/sin_secretos,sin_secretos,prompts-v3,p-v3,d-v3,si,llama3.2,2026-11-23,750,30,usar,
+resultados_tools_debil_20261122_170455.csv,csvs/descartados/tools,debil,tools-v3,v3,(sin registrar),no,llama3.2,2026-11-22,600,20,descartar,en descartados/
+resultados_tools_debil_20261123_170406.csv,csvs/llm03_tools/debil,debil,tools-v3,v4,(sin registrar),no,llama3.2,2026-11-23,600,20,usar,
+resultados_tools_endurecida_20261122_171312.csv,csvs/descartados/tools,endurecida,tools-v3,v3,(sin registrar),no,llama3.2,2026-11-22,600,20,descartar,en descartados/
+resultados_tools_endurecida_20261123_171229.csv,csvs/llm03_tools/endurecida,endurecida,tools-v3,v4,(sin registrar),no,llama3.2,2026-11-23,600,20,usar,
+tools_debil_20reps_20261109_174504.csv,csvs/descartados/tools,debil,tools-v1,(sin registrar),(sin registrar),no,llama3.2,2026-11-09,500,20,descartar,"v1: prompt anterior, sin T6"
+tools_debil_humo_3reps_20261109_174250.csv,csvs/descartados/tools,debil,tools-v1,(sin registrar),(sin registrar),no,llama3.2,2026-11-09,15,3,descartar,"prueba de humo, 3 reps"
+tools_endurecida_20reps_20261109_175252.csv,csvs/descartados/tools,endurecida,tools-v1,(sin registrar),(sin registrar),no,llama3.2,2026-11-09,500,20,descartar,"v1: prompt anterior, sin T6"
+tools_v2_debil_20reps_20261109_181720.csv,csvs/descartados/tools,debil,tools-v2,v2,(sin registrar),no,llama3.2,2026-11-09,600,20,descartar,en descartados/
+tools_v2_debil_humo_T6_2reps_20261109_181655.csv,csvs/descartados/tools,debil,tools-v2,v2,(sin registrar),no,llama3.2,2026-11-09,10,2,descartar,"prueba de humo T6, 2 reps"
+tools_v2_endurecida_20reps_20261109_182624.csv,csvs/descartados/tools,endurecida,tools-v2,v2,(sin registrar),no,llama3.2,2026-11-09,600,20,descartar,en descartados/
