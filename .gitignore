@@ -2,3 +2,5 @@ src/venv
 src/__pycache__
 venv/
 .env
+validacion/desacuerdos.csv
+validacion/muestra_clave.csv
